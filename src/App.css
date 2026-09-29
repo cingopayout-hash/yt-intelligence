@@ -1074,3 +1074,22 @@ button { cursor: pointer; }
     font-size: 11px;
   }
 }
+
+.assistant-message {
+  text-align: left;
+  align-self: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.assistant-message ol,
+.assistant-message ul {
+  text-align: left;
+  padding-left: 24px;
+  margin: 10px 0;
+}
+
+.assistant-message li {
+  padding-left: 4px;
+  margin-bottom: 8px;
+}
