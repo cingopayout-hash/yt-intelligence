@@ -1093,3 +1093,65 @@ button { cursor: pointer; }
   padding-left: 4px;
   margin-bottom: 8px;
 }
+
+/* AI response formatting */
+.assistant-message {
+  text-align: left;
+  align-self: flex-start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+/* Paragraphs */
+.assistant-message p {
+  margin: 0 0 14px;
+}
+
+/* Headings */
+.assistant-message h1,
+.assistant-message h2,
+.assistant-message h3 {
+  text-align: left;
+  line-height: 1.4;
+  margin: 18px 0 10px;
+  font-weight: 700;
+}
+
+.assistant-message h1 {
+  font-size: 20px;
+}
+
+.assistant-message h2 {
+  font-size: 17px;
+}
+
+.assistant-message h3 {
+  font-size: 15px;
+}
+
+/* Lists */
+.assistant-message ul,
+.assistant-message ol {
+  text-align: left;
+  padding-left: 24px;
+  margin: 10px 0 16px;
+}
+
+.assistant-message li {
+  padding-left: 4px;
+  margin-bottom: 8px;
+}
+
+/* Bold text */
+.assistant-message strong {
+  font-weight: 700;
+}
+
+/* Don't add extra space after the last element */
+.assistant-message > :last-child {
+  margin-bottom: 0;
+}

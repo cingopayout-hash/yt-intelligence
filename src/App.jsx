@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import "./App.css";
 
 const API_BASE = "https://yt-intelligence-api.cingopayout.workers.dev";
@@ -324,11 +324,31 @@ export default function App() {
                       }
                       key={index}
                     >
-                      {item.text}
+                      {item.role === "assistant" ? (
+                        <ReactMarkdown
+                          components={{
+                            h1: ({ children }) => <h1>{children}</h1>,
+                            h2: ({ children }) => <h2>{children}</h2>,
+                            h3: ({ children }) => <h3>{children}</h3>,
+                            p: ({ children }) => <p>{children}</p>,
+                            ul: ({ children }) => <ul>{children}</ul>,
+                            ol: ({ children }) => <ol>{children}</ol>,
+                            li: ({ children }) => <li>{children}</li>,
+                            strong: ({ children }) => (
+                              <strong>{children}</strong>
+                            ),
+                          }}
+                        >
+                          {item.text}
+                        </ReactMarkdown>
+                      ) : (
+                        item.text
+                      )}
                     </div>
                   ))}
+
                   {loading && (
-                    <div className="assistant-message">
+                    <div className="assistant-message loading">
                       AI is thinking...
                     </div>
                   )}
