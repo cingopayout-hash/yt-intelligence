@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import "./App.css";
@@ -27,9 +26,13 @@ export default function App() {
   const [ideaCount, setIdeaCount] = useState("10");
   const [competitors, setCompetitors] = useState("");
   const [strategistStatus, setStrategistStatus] = useState("");
+  const [generatedIdeas, setGeneratedIdeas] = useState([]);
+  const [strategistLoading, setStrategistLoading] = useState(false);
+  const [selectedIdea, setSelectedIdea] = useState(null);
 
   useEffect(() => {
     if (!channelData || nicheEdited) return;
+
     const title = channelData.snippet?.title || "";
     if (title) setNiche(title);
   }, [channelData, nicheEdited]);
@@ -59,7 +62,10 @@ export default function App() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Request failed");
+
+      if (!response.ok) {
+        throw new Error(data.error || "Request failed");
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -84,6 +90,7 @@ export default function App() {
 
   async function analyzeChannel() {
     const channel = channelInput.trim();
+
     if (!channel || channelLoading) return;
 
     setChannelLoading(true);
@@ -99,9 +106,11 @@ export default function App() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || "Channel request failed");
       }
+
       setChannelData(data.channel);
     } catch (error) {
       setChannelError(error.message);
@@ -125,6 +134,9 @@ export default function App() {
     setIdeaCount("10");
     setCompetitors("");
     setStrategistStatus("");
+    setGeneratedIdeas([]);
+    setStrategistLoading(false);
+    setSelectedIdea(null);
     setPage("analyst");
   }
 
@@ -153,14 +165,69 @@ export default function App() {
     setStrategistStatus("");
   }
 
-  function prepareIdeas() {
+  async function prepareIdeas() {
     if (!niche.trim()) {
-      setStrategistStatus("Isi niche terlebih dahulu sebelum membuat ide.");
+      setStrategistStatus("Isi niche terlebih dahulu.");
       return;
     }
-    setStrategistStatus(
-      "Form siap. Generator AI dan analisis kompetitor akan disambungkan pada tahap backend berikutnya."
-    );
+
+    if (strategistLoading) return;
+
+    setStrategistLoading(true);
+    setStrategistStatus("");
+    setGeneratedIdeas([]);
+    setSelectedIdea(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/strategist`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          niche: niche.trim(),
+          format,
+          theme,
+          audience,
+          complexity,
+          count: Number(ideaCount),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Generator request failed");
+      }
+
+      let parsed;
+
+      try {
+        parsed =
+          typeof data.result === "string"
+            ? JSON.parse(
+                data.result.replace(/```json|```/g, "").trim()
+              )
+            : data.result;
+      } catch {
+        throw new Error(
+          "AI returned invalid JSON. Please try again."
+        );
+      }
+
+      if (!Array.isArray(parsed?.ideas)) {
+        throw new Error("AI response does not contain an ideas list.");
+      }
+
+      setGeneratedIdeas(parsed.ideas);
+      setStrategistStatus(
+        `Berhasil menghasilkan ${parsed.ideas.length} ide.`
+      );
+    } catch (error) {
+      setStrategistStatus("Gagal membuat ide: " + error.message);
+    } finally {
+      setStrategistLoading(false);
+    }
   }
 
   return (
@@ -180,24 +247,28 @@ export default function App() {
 
         <div className="nav-group">
           <p className="nav-title">WORKSPACE</p>
+
           <button
             className={`nav-item ${page === "analyst" ? "active" : ""}`}
             onClick={() => setPage("analyst")}
           >
             <span>✳</span> AI Analyst
           </button>
+
           <button
             className={`nav-item ${page === "video" ? "active" : ""}`}
             onClick={() => setPage("video")}
           >
             <span>⌕</span> Video Research
           </button>
+
           <button
             className={`nav-item ${page === "analytics" ? "active" : ""}`}
             onClick={() => setPage("analytics")}
           >
             <span>▥</span> Analytics
           </button>
+
           <button
             className={`nav-item ${page === "strategist" ? "active" : ""}`}
             onClick={openStrategist}
@@ -214,6 +285,7 @@ export default function App() {
               <small>Cloudflare Workers AI</small>
             </div>
           </div>
+
           <div className="sidebar-version">
             YT Intelligence <span>v1.1</span>
           </div>
@@ -235,6 +307,7 @@ export default function App() {
                 : "Analytics"}
             </strong>
           </div>
+
           <div className="topbar-right">
             <span className="workspace-pill">
               <i /> Workspace
@@ -254,6 +327,7 @@ export default function App() {
                   production-ready plans.
                 </p>
               </div>
+
               <div className="date-label">✦ STRATEGY STUDIO</div>
             </div>
 
@@ -283,6 +357,7 @@ export default function App() {
                       }}
                       placeholder="Enter a niche, e.g. Roblox mystery stories"
                     />
+
                     <div className="field-hint">
                       {channelData
                         ? `Suggested from analyzed channel: ${
@@ -320,6 +395,7 @@ export default function App() {
                         placeholder="e.g. Mystery, comedy, tutorial"
                       />
                     </div>
+
                     <div className="field-group">
                       <label htmlFor="audience">Target audience</label>
                       <input
@@ -349,6 +425,7 @@ export default function App() {
                         <option>High</option>
                       </select>
                     </div>
+
                     <div className="field-group">
                       <label htmlFor="idea-count">Number of ideas</label>
                       <select
@@ -376,18 +453,23 @@ export default function App() {
                       </p>
                     </div>
                   </div>
+
                   <div className="field-group">
                     <label htmlFor="competitors">
                       Competitor channel or video URLs
                     </label>
+
                     <textarea
                       id="competitors"
                       className="strategist-input strategist-textarea"
                       value={competitors}
                       onChange={(e) => setCompetitors(e.target.value)}
-                      placeholder={"Paste URLs, one per line...\nhttps://www.youtube.com/@example"}
+                      placeholder={
+                        "Paste URLs, one per line...\nhttps://www.youtube.com/@example"
+                      }
                       rows={4}
                     />
+
                     <div className="field-hint">
                       Competitor analysis is not connected yet. This field
                       will be used in the next backend step.
@@ -396,16 +478,26 @@ export default function App() {
                 </div>
 
                 <div className="strategist-actions">
-                  <button className="generate-button" onClick={prepareIdeas}>
-                    ✧ Prepare {ideaCount} Ideas
+                  <button
+                    className="generate-button"
+                    onClick={prepareIdeas}
+                    disabled={strategistLoading}
+                  >
+                    {strategistLoading
+                      ? "Generating..."
+                      : `✧ Generate ${ideaCount} Ideas`}
                   </button>
+
                   <span>
                     Generates ideas from your niche, filters, and selected
                     research sample.
                   </span>
                 </div>
+
                 {strategistStatus && (
-                  <div className="strategist-status">{strategistStatus}</div>
+                  <div className="strategist-status">
+                    {strategistStatus}
+                  </div>
                 )}
 
                 <div className="research-card strategist-card">
@@ -419,6 +511,7 @@ export default function App() {
                       </p>
                     </div>
                   </div>
+
                   <div className="strategist-empty">
                     <div className="empty-icon">⌁</div>
                     <strong>Content gap analysis will appear here</strong>
@@ -440,14 +533,66 @@ export default function App() {
                       </p>
                     </div>
                   </div>
-                  <div className="strategist-empty">
-                    <div className="empty-icon">▤</div>
-                    <strong>No ideas generated yet</strong>
-                    <p>
-                      Your ideas will appear here with an explanation of
-                      their scorecard—not a prediction of virality.
-                    </p>
-                  </div>
+
+                  {generatedIdeas.length === 0 ? (
+                    <div className="strategist-empty">
+                      <div className="empty-icon">▤</div>
+                      <strong>No ideas generated yet</strong>
+                      <p>
+                        Your ideas will appear here with an explanation of
+                        their scorecard—not a prediction of virality.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="generated-ideas">
+                      {generatedIdeas.map((idea, index) => (
+                        <article className="idea-card" key={index}>
+                          <div className="idea-card-top">
+                            <span className="idea-number">
+                              IDEA {String(index + 1).padStart(2, "0")}
+                            </span>
+
+                            <span className="complexity-badge">
+                              {idea.productionComplexity || "Unspecified"}
+                            </span>
+                          </div>
+
+                          <h3>{idea.title || `Idea ${index + 1}`}</h3>
+                          <p>{idea.concept || "No concept provided."}</p>
+
+                          <div className="idea-scores">
+                            <div className="idea-score">
+                              <span>Niche fit</span>
+                              <strong>
+                                {idea.nicheFit ?? "N/A"}
+                                <small>/10</small>
+                              </strong>
+                            </div>
+
+                            <div className="idea-score">
+                              <span>Novelty</span>
+                              <strong>
+                                {idea.novelty ?? "N/A"}
+                                <small>/10</small>
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="idea-reason">
+                            <strong>Why this idea</strong>
+                            <p>{idea.reason || "No reason provided."}</p>
+                          </div>
+
+                          <button
+                            className="secondary-button"
+                            onClick={() => setSelectedIdea(idea)}
+                          >
+                            Build This Idea →
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -457,19 +602,31 @@ export default function App() {
                     <h3>Research Context</h3>
                     <span>◎</span>
                   </div>
+
                   {channelData ? (
                     <>
                       <div className="overview-profile">
                         {snippet?.thumbnails?.default?.url ? (
-                          <img src={snippet.thumbnails.default.url} alt="" />
+                          <img
+                            src={snippet.thumbnails.default.url}
+                            alt=""
+                          />
                         ) : (
-                          <div className="channel-placeholder small">YT</div>
+                          <div className="channel-placeholder small">
+                            YT
+                          </div>
                         )}
+
                         <div>
-                          <strong>{snippet?.title || "Selected channel"}</strong>
-                          <small>{snippet?.customUrl || "Analyzed channel"}</small>
+                          <strong>
+                            {snippet?.title || "Selected channel"}
+                          </strong>
+                          <small>
+                            {snippet?.customUrl || "Analyzed channel"}
+                          </small>
                         </div>
                       </div>
+
                       <div className="overview-line">
                         <span>Channel</span>
                         <strong>Connected</strong>
@@ -485,6 +642,7 @@ export default function App() {
                       </p>
                     </div>
                   )}
+
                   <button
                     className="secondary-button"
                     onClick={() => setPage("analyst")}
@@ -498,18 +656,28 @@ export default function App() {
                     <h3>Idea Scorecard</h3>
                     <span>◈</span>
                   </div>
+
                   <div className="score-guide">
                     <strong>Niche fit</strong>
-                    <p>How closely the idea matches your chosen niche.</p>
+                    <p>
+                      How closely the idea matches your chosen niche.
+                    </p>
                   </div>
+
                   <div className="score-guide">
                     <strong>Novelty</strong>
-                    <p>How distinct the angle is from the sample reviewed.</p>
+                    <p>
+                      How distinct the angle is from the sample reviewed.
+                    </p>
                   </div>
+
                   <div className="score-guide">
                     <strong>Production complexity</strong>
-                    <p>Estimated effort, assets, scenes, and editing needs.</p>
+                    <p>
+                      Estimated effort, assets, scenes, and editing needs.
+                    </p>
                   </div>
+
                   <div className="score-note">
                     Scores explain trade-offs. They do not forecast views or
                     virality.
@@ -521,14 +689,48 @@ export default function App() {
                     <h3>Build This Idea</h3>
                     <span>↗</span>
                   </div>
-                  <div className="empty-side compact">
-                    <div className="empty-icon">✎</div>
-                    <strong>Idea development</strong>
-                    <p>
-                      Select an idea to create its hook, story flow, scenes,
-                      dialogue, and production prompts.
-                    </p>
-                  </div>
+
+                  {selectedIdea ? (
+                    <div className="build-idea">
+                      <strong>{selectedIdea.title}</strong>
+
+                      <div className="build-section">
+                        <span>HOOK</span>
+                        <p>
+                          {selectedIdea.hook || "No hook provided."}
+                        </p>
+                      </div>
+
+                      <div className="build-section">
+                        <span>CONCEPT</span>
+                        <p>
+                          {selectedIdea.concept || "No concept provided."}
+                        </p>
+                      </div>
+
+                      <div className="build-section">
+                        <span>FORMAT</span>
+                        <p>{format}</p>
+                      </div>
+
+                      <div className="build-section">
+                        <span>PRODUCTION NOTE</span>
+                        <p>
+                          Develop this concept into a scene-by-scene plan,
+                          dialogue, and production prompts. This is an initial
+                          idea brief, not a finished script.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="empty-side compact">
+                      <div className="empty-icon">✎</div>
+                      <strong>Idea development</strong>
+                      <p>
+                        Select an idea to view its hook and concept here.
+                      </p>
+                    </div>
+                  )}
                 </section>
               </aside>
             </div>
@@ -544,6 +746,7 @@ export default function App() {
                     Discover insights and understand any YouTube channel.
                   </p>
                 </div>
+
                 <div className="date-label">✦ AI POWERED</div>
               </div>
 
@@ -558,6 +761,7 @@ export default function App() {
 
                 <div className="channel-search">
                   <span className="search-symbol">⌕</span>
+
                   <input
                     value={channelInput}
                     onChange={(e) => setChannelInput(e.target.value)}
@@ -566,11 +770,14 @@ export default function App() {
                     }}
                     placeholder="Search by channel name, @handle, or URL..."
                   />
+
                   <button
                     onClick={analyzeChannel}
                     disabled={channelLoading || !channelInput.trim()}
                   >
-                    {channelLoading ? "Searching..." : "Analyze Channel  →"}
+                    {channelLoading
+                      ? "Searching..."
+                      : "Analyze Channel  →"}
                   </button>
                 </div>
 
@@ -581,7 +788,10 @@ export default function App() {
                 {channelError && (
                   <div className="channel-error">
                     <p>{channelError}</p>
-                    <button onClick={analyzeChannel} disabled={channelLoading}>
+                    <button
+                      onClick={analyzeChannel}
+                      disabled={channelLoading}
+                    >
                       {channelLoading ? "Retrying..." : "Try again"}
                     </button>
                   </div>
@@ -602,10 +812,12 @@ export default function App() {
                       ) : (
                         <div className="channel-placeholder">YT</div>
                       )}
+
                       <div className="channel-name">
                         <h3>{snippet?.title || "Untitled channel"}</h3>
                         <p>{snippet?.customUrl || "YouTube channel"}</p>
                       </div>
+
                       <span className="public-badge">● Public data</span>
                     </div>
 
@@ -618,10 +830,12 @@ export default function App() {
                             : formatNumber(stats?.subscriberCount)}
                         </strong>
                       </div>
+
                       <div>
                         <small>Total Views</small>
                         <strong>{formatNumber(stats?.viewCount)}</strong>
                       </div>
+
                       <div>
                         <small>Total Videos</small>
                         <strong>{formatNumber(stats?.videoCount)}</strong>
@@ -635,6 +849,7 @@ export default function App() {
                           "No public channel description available."}
                       </p>
                     </div>
+
                     <small className="data-note">
                       Source: YouTube Data API · Public channel data only
                     </small>
@@ -647,7 +862,9 @@ export default function App() {
                   <div className="section-icon ai-icon">✳</div>
                   <div>
                     <h2>AI Analyst</h2>
-                    <p>Ask questions and explore YouTube strategy.</p>
+                    <p>
+                      Ask questions and explore YouTube strategy.
+                    </p>
                   </div>
                   <span className="model-tag">LLAMA AI</span>
                 </div>
@@ -660,6 +877,7 @@ export default function App() {
                       I can help you understand YouTube, content strategy,
                       audience signals, and video performance.
                     </p>
+
                     <div className="suggestions">
                       {suggestions.map((item) => (
                         <button
@@ -720,6 +938,7 @@ export default function App() {
                         )}
                       </div>
                     ))}
+
                     {loading && (
                       <div className="assistant-message loading">
                         AI is thinking...
@@ -742,6 +961,7 @@ export default function App() {
                     rows={2}
                     disabled={loading}
                   />
+
                   <button
                     className="send"
                     onClick={() => sendMessage()}
@@ -751,6 +971,7 @@ export default function App() {
                     {loading ? "…" : "↑"}
                   </button>
                 </div>
+
                 <div className="composer-note">
                   AI can make mistakes. Verify important data before making
                   decisions.
@@ -764,19 +985,29 @@ export default function App() {
                   <h3>Channel Overview</h3>
                   <span>◎</span>
                 </div>
+
                 {channelData ? (
                   <>
                     <div className="overview-profile">
                       {snippet?.thumbnails?.default?.url ? (
-                        <img src={snippet.thumbnails.default.url} alt="" />
+                        <img
+                          src={snippet.thumbnails.default.url}
+                          alt=""
+                        />
                       ) : (
-                        <div className="channel-placeholder small">YT</div>
+                        <div className="channel-placeholder small">
+                          YT
+                        </div>
                       )}
+
                       <div>
                         <strong>{snippet?.title || "Channel"}</strong>
-                        <small>{snippet?.customUrl || "Public channel"}</small>
+                        <small>
+                          {snippet?.customUrl || "Public channel"}
+                        </small>
                       </div>
                     </div>
+
                     <div className="overview-line">
                       <span>Subscribers</span>
                       <strong>
@@ -785,10 +1016,12 @@ export default function App() {
                           : formatNumber(stats?.subscriberCount)}
                       </strong>
                     </div>
+
                     <div className="overview-line">
                       <span>Views</span>
                       <strong>{formatNumber(stats?.viewCount)}</strong>
                     </div>
+
                     <div className="overview-line">
                       <span>Videos</span>
                       <strong>{formatNumber(stats?.videoCount)}</strong>
@@ -798,7 +1031,9 @@ export default function App() {
                   <div className="empty-side">
                     <div className="empty-icon">◉</div>
                     <strong>No channel selected</strong>
-                    <p>Search a channel to see its public overview here.</p>
+                    <p>
+                      Search a channel to see its public overview here.
+                    </p>
                   </div>
                 )}
               </section>
@@ -808,10 +1043,13 @@ export default function App() {
                   <h3>Top Content</h3>
                   <span>↗</span>
                 </div>
+
                 <div className="empty-side compact">
                   <div className="empty-icon">▤</div>
                   <strong>Video data not loaded</strong>
-                  <p>Video discovery will be added in a later step.</p>
+                  <p>
+                    Video discovery will be added in a later step.
+                  </p>
                 </div>
               </section>
 
@@ -820,6 +1058,7 @@ export default function App() {
                   <h3>Quick Insights</h3>
                   <span>✧</span>
                 </div>
+
                 <div className="insight-item">
                   <div className="insight-bullet blue">✦</div>
                   <div>
@@ -829,6 +1068,7 @@ export default function App() {
                     </p>
                   </div>
                 </div>
+
                 <div className="insight-item">
                   <div className="insight-bullet purple">⌁</div>
                   <div>
@@ -838,39 +1078,14 @@ export default function App() {
                     </p>
                   </div>
                 </div>
+
                 <div className="insight-footnote">
                   Insights are general until channel data is analyzed.
                 </div>
               </section>
             </aside>
           </div>
-        ) : (
-          <div className="dashboard">
-            <section className="center-column">
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">YOUTUBE RESEARCH</div>
-                  <h1>{page === "video" ? "Video Research" : "Analytics"}</h1>
-                  <p>
-                    {page === "video"
-                      ? "Video discovery and competitor research workspace."
-                      : "Channel and content performance workspace."}
-                  </p>
-                </div>
-              </div>
-              <div className="research-card">
-                <div className="strategist-empty">
-                  <div className="empty-icon">⌁</div>
-                  <strong>Coming in a later step</strong>
-                  <p>
-                    This section is not connected yet. You can use Channel
-                    Research and Content Strategist for now.
-                  </p>
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
+        ) : null}
       </main>
     </div>
   );
