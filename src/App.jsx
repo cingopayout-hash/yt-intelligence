@@ -14,8 +14,11 @@ export default function App() {
   const [channelLoading, setChannelLoading] = useState(false);
   const [channelError, setChannelError] = useState("");
 
-  async function sendMessage() {
-    const text = message.trim();
+  async function sendMessage(promptText) {
+    const text = (
+      typeof promptText === "string" ? promptText : message
+    ).trim();
+
     if (!text || loading) return;
 
     setMessages((prev) => [...prev, { role: "user", text }]);
@@ -26,11 +29,18 @@ export default function App() {
       const response = await fetch(`${API_BASE}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          context: {
+            channel: channelData,
+          },
+        }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Request failed");
+      if (!response.ok) {
+        throw new Error(data.error || "Request failed");
+      }
 
       setMessages((prev) => [
         ...prev,
@@ -42,7 +52,10 @@ export default function App() {
     } catch (error) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: "Terjadi kesalahan: " + error.message },
+        {
+          role: "assistant",
+          text: "Terjadi kesalahan: " + error.message,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -65,7 +78,9 @@ export default function App() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Channel request failed");
+      if (!response.ok) {
+        throw new Error(data.error || "Channel request failed");
+      }
 
       setChannelData(data.channel);
     } catch (error) {
@@ -83,6 +98,18 @@ export default function App() {
   const stats = channelData?.statistics;
   const snippet = channelData?.snippet;
 
+  const suggestions = channelData
+    ? [
+        "Analyze this channel's public statistics",
+        "What can I learn from this channel's size?",
+        "What data is missing for a deeper analysis?",
+      ]
+    : [
+        "How do I analyze a YouTube channel?",
+        "Explain YouTube Shorts retention",
+        "Give me a video research checklist",
+      ];
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -98,6 +125,7 @@ export default function App() {
           className="new-chat"
           onClick={() => {
             setMessages([]);
+            setMessage("");
             setChannelData(null);
             setChannelError("");
             setChannelInput("");
@@ -108,10 +136,18 @@ export default function App() {
 
         <div className="nav-group">
           <p className="nav-title">WORKSPACE</p>
-          <div className="nav-item active"><span>✳</span> AI Analyst</div>
-          <div className="nav-item"><span>⌕</span> Video Research</div>
-          <div className="nav-item"><span>▥</span> Analytics</div>
-          <div className="nav-item"><span>✧</span> Idea Studio</div>
+          <div className="nav-item active">
+            <span>✳</span> AI Analyst
+          </div>
+          <div className="nav-item">
+            <span>⌕</span> Video Research
+          </div>
+          <div className="nav-item">
+            <span>▥</span> Analytics
+          </div>
+          <div className="nav-item">
+            <span>✧</span> Idea Studio
+          </div>
         </div>
 
         <div className="sidebar-bottom">
@@ -122,17 +158,23 @@ export default function App() {
               <small>Cloudflare Workers AI</small>
             </div>
           </div>
-          <div className="sidebar-version">YT Intelligence <span>v1.0</span></div>
+          <div className="sidebar-version">
+            YT Intelligence <span>v1.0</span>
+          </div>
         </div>
       </aside>
 
       <main className="main">
         <header className="topbar">
           <div className="breadcrumb">
-            <span>Workspace</span><b>/</b><strong>AI Analyst</strong>
+            <span>Workspace</span>
+            <b>/</b>
+            <strong>AI Analyst</strong>
           </div>
           <div className="topbar-right">
-            <span className="workspace-pill"><i /> Workspace</span>
+            <span className="workspace-pill">
+              <i /> Workspace
+            </span>
             <div className="user-avatar">C</div>
           </div>
         </header>
@@ -143,7 +185,9 @@ export default function App() {
               <div>
                 <div className="eyebrow">YOUTUBE RESEARCH</div>
                 <h1>Research Dashboard</h1>
-                <p>Discover insights and understand any YouTube channel.</p>
+                <p>
+                  Discover insights and understand any YouTube channel.
+                </p>
               </div>
               <div className="date-label">✦ AI POWERED</div>
             </div>
@@ -256,13 +300,14 @@ export default function App() {
                     I can help you understand YouTube, content strategy,
                     audience signals, and video performance.
                   </p>
+
                   <div className="suggestions">
-                    {[
-                      "How do I analyze a YouTube channel?",
-                      "Explain YouTube Shorts retention",
-                      "Give me a video research checklist",
-                    ].map((item) => (
-                      <button key={item} onClick={() => setMessage(item)}>
+                    {suggestions.map((item) => (
+                      <button
+                        key={item}
+                        onClick={() => sendMessage(item)}
+                        disabled={loading}
+                      >
                         {item} <span>↗</span>
                       </button>
                     ))}
@@ -283,7 +328,9 @@ export default function App() {
                     </div>
                   ))}
                   {loading && (
-                    <div className="assistant-message">AI is thinking...</div>
+                    <div className="assistant-message">
+                      AI is thinking...
+                    </div>
                   )}
                 </div>
               )}
@@ -304,7 +351,7 @@ export default function App() {
                 />
                 <button
                   className="send"
-                  onClick={sendMessage}
+                  onClick={() => sendMessage()}
                   disabled={loading || !message.trim()}
                   aria-label="Send message"
                 >
@@ -312,7 +359,8 @@ export default function App() {
                 </button>
               </div>
               <div className="composer-note">
-                AI can make mistakes. Verify important data before making decisions.
+                AI can make mistakes. Verify important data before making
+                decisions.
               </div>
             </section>
           </section>
@@ -327,13 +375,18 @@ export default function App() {
                 <>
                   <div className="overview-profile">
                     {snippet?.thumbnails?.default?.url ? (
-                      <img src={snippet.thumbnails.default.url} alt="" />
+                      <img
+                        src={snippet.thumbnails.default.url}
+                        alt=""
+                      />
                     ) : (
                       <div className="channel-placeholder small">YT</div>
                     )}
                     <div>
                       <strong>{snippet?.title || "Channel"}</strong>
-                      <small>{snippet?.customUrl || "Public channel"}</small>
+                      <small>
+                        {snippet?.customUrl || "Public channel"}
+                      </small>
                     </div>
                   </div>
                   <div className="overview-line">
@@ -357,7 +410,9 @@ export default function App() {
                 <div className="empty-side">
                   <div className="empty-icon">◉</div>
                   <strong>No channel selected</strong>
-                  <p>Search a channel to see its public overview here.</p>
+                  <p>
+                    Search a channel to see its public overview here.
+                  </p>
                 </div>
               )}
             </section>
@@ -370,7 +425,9 @@ export default function App() {
               <div className="empty-side compact">
                 <div className="empty-icon">▤</div>
                 <strong>Video data not loaded</strong>
-                <p>Video discovery will be added in a later step.</p>
+                <p>
+                  Video discovery will be added in a later step.
+                </p>
               </div>
             </section>
 
@@ -383,14 +440,18 @@ export default function App() {
                 <div className="insight-bullet blue">✦</div>
                 <div>
                   <strong>Start with channel research</strong>
-                  <p>Look at public channel scale before comparing content.</p>
+                  <p>
+                    Look at public channel scale before comparing content.
+                  </p>
                 </div>
               </div>
               <div className="insight-item">
                 <div className="insight-bullet purple">⌁</div>
                 <div>
                   <strong>Ask the AI Analyst</strong>
-                  <p>Use specific questions to get more useful explanations.</p>
+                  <p>
+                    Use specific questions to get more useful explanations.
+                  </p>
                 </div>
               </div>
               <div className="insight-footnote">

@@ -992,3 +992,85 @@ button { cursor: pointer; }
 
   .user-message, .assistant-message { max-width: 95%; }
 }
+
+/* AI ANALYST CHAT IMPROVEMENTS */
+
+/* Chat area */
+.messages {
+  max-height: 520px;
+  min-height: 120px;
+  padding: 20px 8px;
+  gap: 16px;
+  scroll-behavior: smooth;
+}
+
+/* Chat bubbles */
+.user-message,
+.assistant-message {
+  max-width: 88%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* User message */
+.user-message {
+  border-bottom-right-radius: 5px;
+  background: linear-gradient(135deg, #293c72, #303e79);
+  border-color: #4c60a7;
+}
+
+/* AI response */
+.assistant-message {
+  border-bottom-left-radius: 5px;
+  background: #151f30;
+  border-color: #34415a;
+  color: #d8e0f0;
+}
+
+/* Composer focus */
+.composer {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.composer:focus-within {
+  border-color: #6579ed;
+  box-shadow: 0 0 0 3px #6579ed18;
+}
+
+.composer textarea {
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* Send button */
+.send {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+  border-radius: 10px;
+}
+
+/* Better loading appearance */
+.assistant-message.loading {
+  color: #9daac2;
+  font-style: italic;
+}
+
+/* Mobile chat */
+@media (max-width: 600px) {
+  .messages {
+    max-height: 60vh;
+    padding: 15px 2px;
+  }
+
+  .user-message,
+  .assistant-message {
+    max-width: 96%;
+    padding: 12px 13px;
+    font-size: 11px;
+  }
+}
