@@ -993,6 +993,7 @@ button { cursor: pointer; }
   .user-message, .assistant-message { max-width: 95%; }
 }
 
+
 /* AI ANALYST CHAT IMPROVEMENTS */
 
 /* Chat area */
@@ -1012,7 +1013,6 @@ button { cursor: pointer; }
   border-radius: 14px;
   font-size: 12px;
   line-height: 1.8;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
@@ -1025,10 +1025,66 @@ button { cursor: pointer; }
 
 /* AI response */
 .assistant-message {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border-bottom-left-radius: 5px;
   background: #151f30;
   border-color: #34415a;
   color: #d8e0f0;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.8;
+}
+
+/* Markdown paragraphs */
+.assistant-message p {
+  margin: 0 0 14px;
+}
+
+.assistant-message > :last-child {
+  margin-bottom: 0;
+}
+
+/* Markdown headings */
+.assistant-message h1,
+.assistant-message h2,
+.assistant-message h3 {
+  text-align: left;
+  line-height: 1.4;
+  margin: 18px 0 10px;
+  font-weight: 700;
+}
+
+.assistant-message h1 {
+  font-size: 20px;
+}
+
+.assistant-message h2 {
+  font-size: 17px;
+}
+
+.assistant-message h3 {
+  font-size: 15px;
+}
+
+/* Markdown lists */
+.assistant-message ul,
+.assistant-message ol {
+  text-align: left;
+  padding-left: 24px;
+  margin: 10px 0 16px;
+}
+
+.assistant-message li {
+  padding-left: 4px;
+  margin-bottom: 8px;
+}
+
+/* Markdown bold */
+.assistant-message strong {
+  font-weight: 700;
 }
 
 /* Composer focus */
@@ -1054,17 +1110,113 @@ button { cursor: pointer; }
   border-radius: 10px;
 }
 
-/* Better loading appearance */
+.send:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* AI loading */
 .assistant-message.loading {
   color: #9daac2;
   font-style: italic;
+}
+
+/* AI error and retry */
+.assistant-error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.assistant-error-content p {
+  margin: 0;
+  color: #ffb9c0;
+}
+
+.retry-button {
+  padding: 8px 13px;
+  color: #e6eaff;
+  border: 1px solid #5369b6;
+  border-radius: 8px;
+  background: #25345c;
+  font-size: 11px;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.retry-button:hover:not(:disabled) {
+  background: #344777;
+  border-color: #8295ff;
+}
+
+.retry-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Channel error */
+.channel-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  color: #ffb9c0;
+  border: 1px solid #63313d;
+  border-radius: 10px;
+  background: #301923;
+  font-size: 11px;
+}
+
+.channel-error p {
+  margin: 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.channel-error button {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  color: #fff;
+  border: 1px solid #87414d;
+  border-radius: 8px;
+  background: #632b38;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+
+.channel-error button:hover:not(:disabled) {
+  filter: brightness(1.2);
+}
+
+.channel-error button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* New Research disabled state */
+.new-chat:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
 }
 
 /* Mobile chat */
 @media (max-width: 600px) {
   .messages {
     max-height: 60vh;
+    min-height: 100px;
     padding: 15px 2px;
+    gap: 12px;
   }
 
   .user-message,
@@ -1073,85 +1225,17 @@ button { cursor: pointer; }
     padding: 12px 13px;
     font-size: 11px;
   }
-}
 
-.assistant-message {
-  text-align: left;
-  align-self: flex-start;
-  width: 100%;
-  box-sizing: border-box;
-}
+  .assistant-message {
+    max-width: 100%;
+  }
 
-.assistant-message ol,
-.assistant-message ul {
-  text-align: left;
-  padding-left: 24px;
-  margin: 10px 0;
-}
+  .channel-error {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-.assistant-message li {
-  padding-left: 4px;
-  margin-bottom: 8px;
-}
-
-/* AI response formatting */
-.assistant-message {
-  text-align: left;
-  align-self: flex-start;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  white-space: normal;
-  line-height: 1.8;
-  overflow-wrap: anywhere;
-}
-
-/* Paragraphs */
-.assistant-message p {
-  margin: 0 0 14px;
-}
-
-/* Headings */
-.assistant-message h1,
-.assistant-message h2,
-.assistant-message h3 {
-  text-align: left;
-  line-height: 1.4;
-  margin: 18px 0 10px;
-  font-weight: 700;
-}
-
-.assistant-message h1 {
-  font-size: 20px;
-}
-
-.assistant-message h2 {
-  font-size: 17px;
-}
-
-.assistant-message h3 {
-  font-size: 15px;
-}
-
-/* Lists */
-.assistant-message ul,
-.assistant-message ol {
-  text-align: left;
-  padding-left: 24px;
-  margin: 10px 0 16px;
-}
-
-.assistant-message li {
-  padding-left: 4px;
-  margin-bottom: 8px;
-}
-
-/* Bold text */
-.assistant-message strong {
-  font-weight: 700;
-}
-
-/* Don't add extra space after the last element */
-.assistant-message > :last-child {
-  margin-bottom: 0;
+  .channel-error button {
+    width: 100%;
+  }
 }

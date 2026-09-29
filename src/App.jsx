@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import "./App.css";
@@ -14,14 +15,17 @@ export default function App() {
   const [channelLoading, setChannelLoading] = useState(false);
   const [channelError, setChannelError] = useState("");
 
-  async function sendMessage(promptText) {
+  async function sendMessage(promptText, isRetry = false) {
     const text = (
       typeof promptText === "string" ? promptText : message
     ).trim();
 
     if (!text || loading) return;
 
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    if (!isRetry) {
+      setMessages((prev) => [...prev, { role: "user", text }]);
+    }
+
     setMessage("");
     setLoading(true);
 
@@ -38,6 +42,7 @@ export default function App() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || "Request failed");
       }
@@ -54,7 +59,8 @@ export default function App() {
         ...prev,
         {
           role: "assistant",
-          text: "Terjadi kesalahan: " + error.message,
+          text: "Gagal mendapatkan jawaban: " + error.message,
+          retryPrompt: text,
         },
       ]);
     } finally {
@@ -64,6 +70,7 @@ export default function App() {
 
   async function analyzeChannel() {
     const channel = channelInput.trim();
+
     if (!channel || channelLoading) return;
 
     setChannelLoading(true);
@@ -78,6 +85,7 @@ export default function App() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || "Channel request failed");
       }
@@ -224,7 +232,15 @@ export default function App() {
               </div>
 
               {channelError && (
-                <div className="channel-error">{channelError}</div>
+                <div className="channel-error">
+                  <p>{channelError}</p>
+                  <button
+                    onClick={analyzeChannel}
+                    disabled={channelLoading}
+                  >
+                    {channelLoading ? "Retrying..." : "Try again"}
+                  </button>
+                </div>
               )}
 
               {channelData && (
@@ -325,22 +341,37 @@ export default function App() {
                       key={index}
                     >
                       {item.role === "assistant" ? (
-                        <ReactMarkdown
-                          components={{
-                            h1: ({ children }) => <h1>{children}</h1>,
-                            h2: ({ children }) => <h2>{children}</h2>,
-                            h3: ({ children }) => <h3>{children}</h3>,
-                            p: ({ children }) => <p>{children}</p>,
-                            ul: ({ children }) => <ul>{children}</ul>,
-                            ol: ({ children }) => <ol>{children}</ol>,
-                            li: ({ children }) => <li>{children}</li>,
-                            strong: ({ children }) => (
-                              <strong>{children}</strong>
-                            ),
-                          }}
-                        >
-                          {item.text}
-                        </ReactMarkdown>
+                        item.retryPrompt ? (
+                          <div className="assistant-error-content">
+                            <p>{item.text}</p>
+                            <button
+                              className="retry-button"
+                              onClick={() =>
+                                sendMessage(item.retryPrompt, true)
+                              }
+                              disabled={loading}
+                            >
+                              {loading ? "Retrying..." : "Try again"}
+                            </button>
+                          </div>
+                        ) : (
+                          <ReactMarkdown
+                            components={{
+                              h1: ({ children }) => <h1>{children}</h1>,
+                              h2: ({ children }) => <h2>{children}</h2>,
+                              h3: ({ children }) => <h3>{children}</h3>,
+                              p: ({ children }) => <p>{children}</p>,
+                              ul: ({ children }) => <ul>{children}</ul>,
+                              ol: ({ children }) => <ol>{children}</ol>,
+                              li: ({ children }) => <li>{children}</li>,
+                              strong: ({ children }) => (
+                                <strong>{children}</strong>
+                              ),
+                            }}
+                          >
+                            {item.text}
+                          </ReactMarkdown>
+                        )
                       ) : (
                         item.text
                       )}
